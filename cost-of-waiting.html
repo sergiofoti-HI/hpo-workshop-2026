@@ -120,6 +120,12 @@ table.fx th,table.fx td{border-bottom:1px solid #e3c2cc;padding:.25em .45em;text
 table.fx th{font-size:.85em;color:var(--crimson)}
 table.fx td:nth-child(n+3){white-space:nowrap}
 body:not(.facmode) .fac{display:none}
+.gapin{display:flex;flex-direction:column;gap:.25em;background:var(--blush2);border:2px solid var(--blush);border-radius:12px;padding:.5em .7em}
+.gapin .gl{font-weight:700;font-size:.86em}
+.gapin .gr{display:flex;align-items:center;gap:.35em;border:2px solid var(--line);border-radius:10px;background:#fff;padding:.1em .6em;max-width:9em}
+.gapin .cur{font-weight:800;color:var(--grey)}
+.gapin input{border:0;width:100%;font-size:1.3em;font-weight:800;padding:.15em 0;background:transparent;min-width:0;color:var(--crimson)}
+.gapin .gm{font-size:.84em;font-weight:700;color:var(--crimson)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;z-index:50;padding:12px}
 .ovb{background:#fff;border-radius:20px;padding:1.2em 1.5em;max-width:min(46em,94vw);max-height:90vh;overflow:auto}
 .ovb h3{font-size:1.3em;color:var(--crimson);margin-bottom:.4em}
@@ -233,8 +239,7 @@ var PEOPLE=[
  {id:"fd",name:"Marko",role:"Front desk agent",issue:"Low upsell",kpi:"Upsell rate 6% (team 14%)",
   clue:"Friendly, guests like him. Joined just before the new upsell offers launched and was never trained on them.",
   cause:"Skill gap: he does not know how to upsell.",best:"coach",
-  why:"\u20ac1.50 less upsell per occupied room night \u00d7 1,095 room nights",
-  leak:1.5*C.rnMonth},
+  gap:1.5,leak:1.5*C.rnMonth},
  {id:"hk",name:"Ana",role:"Housekeeping supervisor",issue:"Late room-ready times",kpi:"Rooms ready 13:40 (target 12:00)",
   clue:"Eight years with the hotel, very experienced. Disengaged since she was passed over for promotion last year.",
   cause:"Engagement gap: she needs to be heard and given ownership. A PIP feels like punishment, and she resigns.",best:"checkin",
@@ -266,7 +271,11 @@ function calc(m,picks){var rows=PEOPLE.map(function(p){return person(p,picks[p.i
  var t={m:m,rows:rows,wait:0,total:0,cost:0,perMonth:0,leak:0};
  rows.forEach(function(r){t.wait+=r.wait;t.total+=r.total;t.cost+=r.cost;t.perMonth+=r.perMonth;t.leak+=r.p.leak});
  t.cow=t.wait-t.total; return t}
-return {C:C,PEOPLE:PEOPLE,ACTIONS:ACTIONS,FIX:FIX,act:act,calc:calc,person:person};
+/* Marko's upsell gap per occupied room (EUR) is editable; his monthly loss = gap x occupied room nights a month */
+function setGap(g){g=+g;if(!isFinite(g))g=1.5;g=Math.max(0,Math.min(20,g));var p=PEOPLE[0];p.gap=g;p.leak=g*C.rnMonth;
+ p.why="\u20ac"+g.toFixed(2)+" less upsell per occupied room night \u00d7 1,095 room nights";return g}
+setGap(1.5);
+return {setGap:setGap,C:C,PEOPLE:PEOPLE,ACTIONS:ACTIONS,FIX:FIX,act:act,calc:calc,person:person};
 })();
 
 /* ===== UI ===== */
@@ -276,9 +285,10 @@ var KEY="hpo26-cost-of-waiting-50-v2",NAV=["1 \u00b7 The hotel","2 \u00b7 Decide
 var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 var P=CW.PEOPLE,C=CW.C;
 function $(id){return document.getElementById(id)}
-function fresh(){return {scr:0,fac:false,m:1,picks:{fd:"checkin",hk:"checkin",res:"checkin"}}}
+function fresh(){return {scr:0,fac:false,m:1,picks:{fd:"checkin",hk:"checkin",res:"checkin"},gap:1.5}}
 var S=fresh();
 try{var L=JSON.parse(localStorage.getItem(KEY));if(L&&L.picks)S=Object.assign(fresh(),L)}catch(e){}
+S.gap=CW.setGap(S.gap);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function eur(x){var n=Math.round(x);return (n<0?"\u2212":"")+"\u20ac"+Math.abs(n).toLocaleString("en-US")}
 function pct(x){return Math.round(x*100)+"%"}
@@ -290,15 +300,20 @@ function pHead(p){return '<div class="pch"><span class="av">'+p.name[0]+'</span>
 function renderStart(){var t=CW.calc(12,{});
  $("hotel").innerHTML=[["Rooms","50"],["Occupancy","72%"],["ADR","\u20ac120"],["GOP lost per month if nobody acts",eur(t.leak)]].map(function(h){return '<div class="hk"><div class="l">'+h[0]+'</div><div class="v">'+h[1]+'</div></div>'}).join("");
  $("ppl").innerHTML=P.map(function(p){return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+': '+p.kpi+'</span><span class="cl">'+p.clue+'</span><span class="leak">Loses <b>'+eur(p.leak)+'</b> GOP a month</span></div>'}).join("")}
+function gapField(){var p=P[0];return '<label class="gapin" for="gap"><span class="gl">Upsell gap per occupied room (vs your best receptionist), EUR</span>'+
+ '<span class="gr"><span class="cur">\u20ac</span><input id="gap" type="number" inputmode="decimal" min="0" max="20" step="0.10" value="'+p.gap.toFixed(2)+'"></span>'+
+ '<span class="hint">Enter your own hotel\'s figure; default is an EXAMPLE.</span><span class="gm" id="gapM">= '+eur(p.leak)+' GOP lost a month (\u00d7 1,095 room nights)</span></label>'}
 function renderPick(){var t=CW.calc(S.m,S.picks);
  $("month").value=S.m;
  $("mLab").textContent="You act at the end of "+MONTHS[S.m-1]+(S.m===1?" (first monthly check-in)":"");
  $("pick").innerHTML=t.rows.map(function(r){var p=r.p;
-  return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+'</span><div class="opts" role="group" aria-label="'+p.name+'">'+
+  return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+'</span>'+(p.id==="fd"?gapField():'')+'<div class="opts" role="group" aria-label="'+p.name+'">'+
    CW.ACTIONS.map(function(a){return '<button class="opt'+(r.a===a.id?" sel":"")+'" data-p="'+p.id+'" data-v="'+a.id+'"><span>'+a.t+'</span><small>'+eur(a.cost)+'</small></button>'}).join("")+
    '</div><span class="fitn '+(r.f>=.75?"g":r.f<=.3?"w":"")+'">Fixes '+pct(r.f)+' of the loss</span>'+(r.note?'<span class="hint" style="color:var(--bad);font-weight:700">'+r.note+'</span>':'')+'</div>'}).join("");
  $("facPick").innerHTML='<h4>Facilitator &middot; best fit</h4><ul>'+P.map(function(p){return '<li><b>'+p.name+' &rarr; '+CW.act(p.best).t+'.</b> '+p.cause+'</li>'}).join("")+
   '<li>Trap: a PIP for Ana. She resigns, so the hotel pays for a replacement and fixes only 30% of the loss this year.</li></ul>';
+ renderLive()}
+function renderLive(){var t=CW.calc(S.m,S.picks);
  $("live").innerHTML='<div><div class="k">COST OF WAITING &middot; EXAMPLE</div><div class="v">'+eur(t.cow)+'</div></div><div class="s">GOP you keep this year by acting in '+MONTHS[S.m-1]+' instead of waiting for the December review. Each month you delay costs about <b>'+eur(t.perMonth)+'</b> more.</div><button class="btn btn-primary" data-go="2">See result &rarr;</button>'}
 function renderResult(){var t=CW.calc(S.m,S.picks),mx=Math.max(t.wait,t.total);
  $("cow").innerHTML='<div class="k">THE COST OF WAITING &middot; THIS YEAR &middot; EXAMPLE</div><div class="v">'+eur(t.cow)+'</div><div class="s">'+(t.cow>=0?'Waiting for the annual review loses this much more GOP than your plan: acting at the end of '+MONTHS[S.m-1]+'. Every month you delay adds about <b>'+eur(t.perMonth)+'</b>.':'This time, your plan costs more than waiting. Acting early only pays when the action fits the cause.')+'</div>';
@@ -316,13 +331,16 @@ function renderFac(){var best={},m1;P.forEach(function(p){best[p.id]=p.best});m1
  '<li>Hotel: '+C.rooms+' rooms &times; '+C.days+' days &times; '+pct(C.occ)+' = '+Math.round(C.rnYear).toLocaleString("en-US")+' occupied room nights a year, '+Math.round(C.rnMonth).toLocaleString("en-US")+' a month. ADR \u20ac'+C.adr+', variable cost \u20ac'+C.varCost+' per occupied room, OTA commission '+pct(C.otaComm)+'.</li>'+
  '<li>Action costs (one-off): check-ins '+eur(600)+', coaching '+eur(2000)+', PIP '+eur(1000)+'.</li>'+
  '<li>Formula per person: loss &times; months until you act + loss &times; (1 &minus; share fixed) &times; months left + action cost. Waiting for the annual review = loss &times; 12.</li>'+
- '<li>Answers: waiting = '+eur(m1.wait)+'. Best fit in January = '+eur(m1.total)+', cost of waiting <b>'+eur(m1.cow)+'</b>. Check-ins for everyone in January = cost of waiting '+eur(allC.cow)+'. Best fit, but only in June = '+eur(m6.cow)+'.</li>'+
+ '<li>Answers at Marko\'s upsell gap of \u20ac'+P[0].gap.toFixed(2)+(P[0].gap===1.5?' (the EXAMPLE default)':'')+': waiting = '+eur(m1.wait)+'. Best fit in January = '+eur(m1.total)+', cost of waiting <b>'+eur(m1.cow)+'</b>. Check-ins for everyone in January = cost of waiting '+eur(allC.cow)+'. Best fit, but only in June = '+eur(m6.cow)+'.</li>'+
  '<li>Seasonality, morale and next year are left out on purpose to keep it simple: in reality, tolerated low performance also drags down the rest of the team.</li></ul>'}
 function render(){document.body.classList.toggle("facmode",!!S.fac);$("bFac").setAttribute("aria-pressed",S.fac?"true":"false");
  renderStart();renderPick();renderResult();renderFac()}
 document.addEventListener("click",function(e){var t=e.target.closest("button");if(!t)return;var d=t.dataset;
  if(d.go!=null){go(+d.go);return}
  if(d.p){S.picks[d.p]=d.v;save();renderPick();renderResult();return}});
+document.addEventListener("input",function(e){if(e.target.id!=="gap")return;var v=e.target.value;if(v===""||!isFinite(+v))return;
+ S.gap=CW.setGap(v);save();$("gapM").textContent="= "+eur(P[0].leak)+" GOP lost a month (\u00d7 1,095 room nights)";renderStart();renderLive();renderResult();renderFac()});
+document.addEventListener("change",function(e){if(e.target.id==="gap"){e.target.value=CW.PEOPLE[0].gap.toFixed(2)}});
 $("month").addEventListener("input",function(e){S.m=+e.target.value;save();renderPick();renderResult()});
 $("bFac").onclick=function(){S.fac=!S.fac;save();render()};
 $("bHelp").onclick=function(){$("ovHelp").hidden=false};
