@@ -125,6 +125,12 @@ body:not(.facmode) .fac{display:none}
 .gapin .gr{display:flex;align-items:center;gap:.35em;border:2px solid var(--line);border-radius:10px;background:#fff;padding:.1em .6em;max-width:9em}
 .gapin .cur{font-weight:800;color:var(--grey)}
 .gapin input{border:0;width:100%;font-size:1.3em;font-weight:800;padding:.15em 0;background:transparent;min-width:0;color:var(--crimson)}
+.gapin input::placeholder{color:#aaa;font-weight:600}
+.gapin .todo{color:var(--grey);font-weight:600;font-style:italic}
+.cow .v.pr,.live .v.pr{font-size:clamp(1.6rem,3.4vw,3rem)}
+table.br tr.ne td{color:var(--grey)}
+.btn-sm{font-size:.8em;padding:.4em 1em}
+.btn-dark{background:#000;color:#fff}
 .gapin .gm{font-size:.84em;font-weight:700;color:var(--crimson)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;z-index:50;padding:12px}
 .ovb{background:#fff;border-radius:20px;padding:1.2em 1.5em;max-width:min(46em,94vw);max-height:90vh;overflow:auto}
@@ -164,7 +170,7 @@ body:not(.facmode) .fac{display:none}
  <div class="hero">
   <div class="kicker">People simulation &middot; 3 steps &middot; about 15 min</div>
   <h1>The cost of waiting. <span>Act now, or wait for the annual review?</span></h1>
-  <p>Our 50-room hotel has three people who underperform from January. Every month nobody acts, the hotel loses GOP. Choose <b>when</b> to act and <b>what</b> to do for each person, then see how much money waiting costs. <span class="illus">ALL NUMBERS ARE EXAMPLE / ILLUSTRATIVE</span></p>
+  <p>Our EXAMPLE 50-room hotel has three people who underperform from January. Every month nobody acts, the hotel loses GOP. Fill in each person's gap <b>as it would be in your hotel</b>, choose <b>when</b> to act and <b>what</b> to do, then see how much money waiting costs. <span class="illus">EXAMPLE HOTEL &middot; YOUR OWN FIGURES</span></p>
  </div>
  <div class="hotel" id="hotel"></div>
  <div class="ppl" id="ppl"></div>
@@ -223,138 +229,162 @@ body:not(.facmode) .fac{display:none}
 </footer>
 <div class="ov" id="ovHelp" hidden role="dialog" aria-label="Help"><div class="ovb">
  <h3>How it works</h3>
- <p style="font-size:.92em;margin-bottom:.7em">One EXAMPLE 50-room hotel, three low performers. Pick the month you act and one action per person. The result compares your plan with waiting for the annual review in December. <b>Facilitator</b> shows the answers and the math.</p>
+ <p style="font-size:.92em;margin-bottom:.7em">One EXAMPLE 50-room hotel, three low performers. Fill in each person's gap with your own hotel's figures, pick the month you act and one action per person. The result compares your plan with waiting for the annual review in December. <b>Facilitator</b> shows the answers and the math.</p>
  <div class="kgrid"><kbd>&larr; &rarr;</kbd><span>Previous / next screen</span><kbd>N</kbd><span>Facilitator notes on / off</span><kbd>H</kbd><span>This help &middot; <kbd>Esc</kbd> closes it</span></div>
  <p style="font-size:.85em;color:#555;margin-top:.8em">All numbers are illustrative teaching values, not benchmarks. Nothing is sent anywhere; your choices stay in this browser.</p>
  <div class="oacts"><button class="btn btn-primary" id="bHelpClose">Close</button></div>
 </div></div>
 <script>
-/* ===== The Cost of Waiting (simple, 50 rooms). Pure model. ALL numbers EXAMPLE / ILLUSTRATIVE. ===== */
+/* ===== The Cost of Waiting (simple, EXAMPLE 50-room hotel). Participants enter their own gap figures. Pure model. ===== */
 var CW=(function(){
 "use strict";
 var C={rooms:50,days:365,occ:0.72,adr:120,varCost:30,otaComm:0.18};
 C.rnYear=C.rooms*C.days*C.occ;      // 13,140 occupied room nights a year
 C.rnMonth=C.rnYear/12;              // 1,095 a month
+C.margin=C.adr-C.varCost;           // 90 profit per room night
 var PEOPLE=[
  {id:"fd",name:"Marko",role:"Front desk agent",issue:"Low upsell",kpi:"Upsell rate 6% (team 14%)",
   clue:"Friendly, guests like him. Joined just before the new upsell offers launched and was never trained on them.",
-  cause:"Skill gap: he does not know how to upsell.",best:"coach",
-  gap:1.5,leak:1.5*C.rnMonth},
+  cause:"Skill gap: he does not know how to upsell.",best:"coach"},
  {id:"hk",name:"Ana",role:"Housekeeping supervisor",issue:"Late room-ready times",kpi:"Rooms ready 13:40 (target 12:00)",
   clue:"Eight years with the hotel, very experienced. Disengaged since she was passed over for promotion last year.",
-  cause:"Engagement gap: she needs to be heard and given ownership. A PIP feels like punishment, and she resigns.",best:"checkin",
-  adrGap:0.5,ot:500,leak:C.adr*0.005*C.rnMonth+500},
+  cause:"Engagement gap: she needs to be heard and given ownership. A PIP feels like punishment, and she resigns.",best:"checkin"},
  {id:"res",name:"Luka",role:"Reservations agent",issue:"Low conversion",kpi:"Converts 18% of inquiries (team 30%)",
   clue:"Joined 6 months ago. Slow replies, rarely follows up quotes, missed 2 of 3 training sessions.",
-  cause:"Unclear expectations: he knows how, but targets were never set. A PIP with clear targets works.",best:"pip",
-  why:"10 lost room nights \u00d7 \u20ac90 margin (\u20ac120 \u2212 \u20ac30) + 15 room nights moved to OTA \u00d7 \u20ac120 \u00d7 18%",
-  leak:10*(C.adr-C.varCost)+15*C.adr*C.otaComm}
+  cause:"Unclear expectations: he knows how, but targets were never set. A PIP with clear targets works.",best:"pip"}
 ];
+/* editable gap fields; ex = example figure (placeholder and "Load example figures") */
+var FIELDS={
+ fd:[{k:"gap",s:"upsell gap",l:"Upsell gap per occupied room (vs your best receptionist), EUR",u:"\u20ac",pre:1,ex:1.5,step:0.1,max:20,dec:2}],
+ hk:[{k:"adrGap",s:"ADR gap",l:"ADR gap vs target, %",u:"%",pre:0,ex:0.5,step:0.1,max:10,dec:1},
+     {k:"ot",s:"overtime",l:"Overtime from late rooms, EUR per month",u:"\u20ac",pre:1,ex:500,step:50,max:5000,dec:0}],
+ res:[{k:"lost",s:"lost room nights",l:"Lost room nights per month",u:"",pre:0,ex:10,step:1,max:500,dec:0},
+      {k:"ota",s:"room nights to OTA",l:"Room nights moved to OTA per month",u:"",pre:0,ex:15,step:1,max:1000,dec:0}]
+};
+function num(v){return (v===null||v===undefined||v===""||!isFinite(+v))?null:+v}
+function clampF(f,v){v=num(v);return v===null?null:Math.max(0,Math.min(f.max,v))}
+function entered(id,V){return FIELDS[id].some(function(f){return num(V[f.k])!==null})}
+/* monthly GOP loss per person from the entered values (an empty field counts as 0) */
+function parts(id,V){var g=function(k){return num(V[k])||0};
+ if(id==="fd")return [{lab:"lost upsell",v:g("gap")*C.rnMonth}];
+ if(id==="hk")return [{lab:"lower ADR",v:C.adr*g("adrGap")/100*C.rnMonth},{lab:"overtime",v:g("ot")}];
+ return [{lab:"lost room nights",v:g("lost")*C.margin},{lab:"OTA commission",v:g("ota")*C.adr*C.otaComm}]}
+function leak(id,V){return entered(id,V)?parts(id,V).reduce(function(s,x){return s+x.v},0):0}
 var ACTIONS=[
  {id:"checkin",t:"Monthly check-ins",d:"30 minutes a month: goals, feedback, support",cost:600},
  {id:"coach",t:"Coaching plan",d:"Training plus a buddy for 3 months",cost:2000},
  {id:"pip",t:"Performance plan (PIP)",d:"Written targets and a deadline",cost:1000}
 ];
-/* share of the monthly loss fixed after the action, and extra one-off cost */
 var FIX={
  fd:{checkin:{f:.40},coach:{f:.80},pip:{f:.50}},
  hk:{checkin:{f:.75},coach:{f:.40},pip:{f:.30,extra:4000,note:"Ana resigns. Hiring and training a replacement costs \u20ac4,000 more, and the new person needs time."}},
  res:{checkin:{f:.40},coach:{f:.50},pip:{f:.80}}
 };
 function act(id){return ACTIONS.filter(function(a){return a.id===id})[0]}
-/* m = month you act (1..11): months 1..m lose the full amount, months m+1..12 lose (1-f) of it */
-function person(p,a,m){var fx=FIX[p.id][a],cost=act(a).cost+(fx.extra||0);
- var before=p.leak*m, after=p.leak*(1-fx.f)*(12-m), wait=p.leak*12, total=before+after+cost;
- return {p:p,a:a,f:fx.f,cost:cost,before:before,after:after,total:total,wait:wait,saved:wait-total,perMonth:p.leak*fx.f,note:fx.note||""}}
-function calc(m,picks){var rows=PEOPLE.map(function(p){return person(p,picks[p.id]||"checkin",m)});
- var t={m:m,rows:rows,wait:0,total:0,cost:0,perMonth:0,leak:0};
- rows.forEach(function(r){t.wait+=r.wait;t.total+=r.total;t.cost+=r.cost;t.perMonth+=r.perMonth;t.leak+=r.p.leak});
- t.cow=t.wait-t.total; return t}
-/* Marko's upsell gap per occupied room (EUR) is editable; his monthly loss = gap x occupied room nights a month */
-function setGap(g){g=+g;if(!isFinite(g))g=1.5;g=Math.max(0,Math.min(20,g));var p=PEOPLE[0];p.gap=g;p.leak=g*C.rnMonth;
- p.why="\u20ac"+g.toFixed(2)+" less upsell per occupied room night \u00d7 1,095 room nights";return g}
-/* Ana's late rooms: ADR gap vs target (%) and overtime (EUR a month) are editable; loss = ADR x gap% x room nights + overtime */
-function clampN(v,d,lo,hi){v=+v;if(!isFinite(v))v=d;return Math.max(lo,Math.min(hi,v))}
-function setAna(adrGap,ot){var p=PEOPLE[1];p.adrGap=clampN(adrGap,0.5,0,10);p.ot=clampN(ot,500,0,5000);
- p.adrLoss=C.adr*p.adrGap/100*C.rnMonth;p.leak=p.adrLoss+p.ot;
- p.why="late rooms, weaker reviews = "+(+p.adrGap.toFixed(2))+"% lower ADR (\u20ac"+(C.adr*p.adrGap/100).toFixed(2)+" \u00d7 1,095) + \u20ac"+Math.round(p.ot).toLocaleString("en-US")+" overtime";return p}
-setGap(1.5);setAna(0.5,500);
-return {setGap:setGap,setAna:setAna,C:C,PEOPLE:PEOPLE,ACTIONS:ACTIONS,FIX:FIX,act:act,calc:calc,person:person};
+/* m = month you act (1..11): months 1..m lose the full amount, months m+1..12 lose (1-f) of it.
+   A person with no figures entered is left out (no loss, no action cost). */
+function person(p,a,m,V){var fx=FIX[p.id][a],on=entered(p.id,V),L=leak(p.id,V),cost=on?act(a).cost+(fx.extra||0):0;
+ var before=L*m, after=L*(1-fx.f)*(12-m), wait=L*12, total=on?before+after+cost:0;
+ return {p:p,a:a,on:on,leak:L,f:fx.f,cost:cost,before:before,after:after,total:total,wait:wait,saved:wait-total,perMonth:L*fx.f,note:fx.note||""}}
+function calc(m,picks,vals){var rows=PEOPLE.map(function(p){return person(p,picks[p.id]||"checkin",m,vals[p.id]||{})});
+ var t={m:m,rows:rows,wait:0,total:0,cost:0,perMonth:0,leak:0,n:0};
+ rows.forEach(function(r){if(!r.on)return;t.n++;t.wait+=r.wait;t.total+=r.total;t.cost+=r.cost;t.perMonth+=r.perMonth;t.leak+=r.leak});
+ t.cow=t.wait-t.total;return t}
+function example(){var v={};PEOPLE.forEach(function(p){v[p.id]={};FIELDS[p.id].forEach(function(f){v[p.id][f.k]=f.ex})});return v}
+return {C:C,PEOPLE:PEOPLE,FIELDS:FIELDS,ACTIONS:ACTIONS,FIX:FIX,act:act,calc:calc,person:person,leak:leak,parts:parts,entered:entered,clampF:clampF,num:num,example:example};
 })();
 
 /* ===== UI ===== */
 (function(){
 "use strict";
-var KEY="hpo26-cost-of-waiting-50-v2",NAV=["1 \u00b7 The hotel","2 \u00b7 Decide","3 \u00b7 Result"],LAST=2;
+var KEY="hpo26-cost-of-waiting-50-v3",NAV=["1 \u00b7 The hotel","2 \u00b7 Decide","3 \u00b7 Result"],LAST=2;
 var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
-var P=CW.PEOPLE,C=CW.C;
+var P=CW.PEOPLE,C=CW.C,F=CW.FIELDS;
 function $(id){return document.getElementById(id)}
-function fresh(){return {scr:0,fac:false,m:1,picks:{fd:"checkin",hk:"checkin",res:"checkin"},gap:1.5,adrGap:0.5,ot:500}}
+function emptyVals(){return {fd:{},hk:{},res:{}}}
+function fresh(){return {scr:0,fac:false,m:1,picks:{fd:"checkin",hk:"checkin",res:"checkin"},vals:emptyVals()}}
 var S=fresh();
-try{var L=JSON.parse(localStorage.getItem(KEY));if(L&&L.picks)S=Object.assign(fresh(),L)}catch(e){}
-S.gap=CW.setGap(S.gap);var _a=CW.setAna(S.adrGap,S.ot);S.adrGap=_a.adrGap;S.ot=_a.ot;
+try{var L=JSON.parse(localStorage.getItem(KEY));if(L&&L.picks){S=Object.assign(fresh(),L);if(!S.vals)S.vals=emptyVals()}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function eur(x){var n=Math.round(x);return (n<0?"\u2212":"")+"\u20ac"+Math.abs(n).toLocaleString("en-US")}
 function pct(x){return Math.round(x*100)+"%"}
+function V(id){return S.vals[id]||{}}
+function on(id){return CW.entered(id,V(id))}
+function T(){return CW.calc(S.m,S.picks,S.vals)}
+var PROMPT="Fill in the gaps for each person to see your cost of waiting";
 function go(i){i=Math.max(0,Math.min(LAST,i));S.scr=i;save();
  document.querySelectorAll(".screen").forEach(function(s,k){s.classList.toggle("active",k===i)});
  $("nav").innerHTML=NAV.map(function(n,k){return '<button class="ndot'+(k===i?" on":"")+'" data-go="'+k+'">'+n+'</button>'}).join("");
  render();window.scrollTo(0,0)}
 function pHead(p){return '<div class="pch"><span class="av">'+p.name[0]+'</span><div><b>'+p.name+'</b><small>'+p.role+'</small></div></div>'}
-function renderStart(){var t=CW.calc(12,{});
- $("hotel").innerHTML=[["Rooms","50"],["Occupancy","72%"],["ADR","\u20ac120"],["GOP lost per month if nobody acts",eur(t.leak)]].map(function(h){return '<div class="hk"><div class="l">'+h[0]+'</div><div class="v">'+h[1]+'</div></div>'}).join("");
- $("ppl").innerHTML=P.map(function(p){return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+': '+p.kpi+'</span><span class="cl">'+p.clue+'</span><span class="leak">Loses <b>'+eur(p.leak)+'</b> GOP a month</span></div>'}).join("")}
-function gapField(){var p=P[0];return '<label class="gapin" for="gap"><span class="gl">Upsell gap per occupied room (vs your best receptionist), EUR</span>'+
- '<span class="gr"><span class="cur">\u20ac</span><input id="gap" type="number" inputmode="decimal" min="0" max="20" step="0.10" value="'+p.gap.toFixed(2)+'"></span>'+
- '<span class="hint">Enter your own hotel\'s figure; default is an EXAMPLE.</span><span class="gm" id="gapM">= '+eur(p.leak)+' GOP lost a month (\u00d7 1,095 room nights)</span></label>'}
-function anaLine(){return "= "+eur(P[1].leak)+" GOP lost a month ("+eur(P[1].adrLoss)+" lower ADR + "+eur(P[1].ot)+" overtime)"}
-function anaField(){var p=P[1];return '<div class="gapin"><label class="gl" for="anaAdr">ADR gap vs target, %</label>'+
- '<span class="gr"><input id="anaAdr" type="number" inputmode="decimal" min="0" max="10" step="0.1" value="'+(+p.adrGap.toFixed(2))+'"><span class="cur">%</span></span>'+
- '<label class="gl" for="anaOt">Overtime from late rooms, EUR per month</label>'+
- '<span class="gr"><span class="cur">\u20ac</span><input id="anaOt" type="number" inputmode="numeric" min="0" max="5000" step="50" value="'+Math.round(p.ot)+'"></span>'+
- '<span class="hint">Enter your own hotel\'s figure; default is an EXAMPLE.</span><span class="gm" id="anaM">'+anaLine()+'</span></div>'}
-function renderPick(){var t=CW.calc(S.m,S.picks);
+function lossLine(id){if(!on(id))return '<span class="todo">Enter your figure</span>';
+ var ps=CW.parts(id,V(id)),L=CW.leak(id,V(id));
+ return '= '+eur(L)+' GOP lost a month'+(ps.length>1?' ('+ps.map(function(x){return eur(x.v)+' '+x.lab}).join(' + ')+')':'')}
+function fields(id){return '<div class="gapin">'+F[id].map(function(f){var v=CW.num(V(id)[f.k]);
+  var ph="e.g. "+(f.dec?f.ex.toFixed(f.dec):f.ex);
+  var inp='<input id="in-'+id+'-'+f.k+'" data-fid="'+id+'" data-fk="'+f.k+'" type="number" inputmode="decimal" min="0" max="'+f.max+'" step="'+f.step+'" placeholder="'+ph+'" value="'+(v===null?"":v)+'">';
+  var u=f.u?'<span class="cur">'+f.u+'</span>':'';
+  return '<label class="gl" for="in-'+id+'-'+f.k+'">'+f.l+'</label><span class="gr">'+(f.pre?u+inp:inp+u)+'</span>'}).join("")+
+  '<span class="hint">Enter your own hotel\'s figure.</span><span class="gm" id="lm-'+id+'">'+lossLine(id)+'</span></div>'}
+function renderStart(){var t=T();
+ $("hotel").innerHTML=[["Rooms &middot; EXAMPLE hotel","50"],["Occupancy &middot; EXAMPLE","72%"],["ADR &middot; EXAMPLE","\u20ac120"],["GOP lost per month if nobody acts",t.n?eur(t.leak):'<span style="font-size:.6em">your figures</span>']].map(function(h){return '<div class="hk"><div class="l">'+h[0]+'</div><div class="v">'+h[1]+'</div></div>'}).join("");
+ $("ppl").innerHTML=P.map(function(p){return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+': '+p.kpi+'</span><span class="cl">'+p.clue+'</span><span class="leak">Loses <b>'+(on(p.id)?eur(CW.leak(p.id,V(p.id))):'your figure')+'</b> GOP a month</span></div>'}).join("")}
+function renderPick(){var t=T();
  $("month").value=S.m;
  $("mLab").textContent="You act at the end of "+MONTHS[S.m-1]+(S.m===1?" (first monthly check-in)":"");
  $("pick").innerHTML=t.rows.map(function(r){var p=r.p;
-  return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+'</span>'+(p.id==="fd"?gapField():p.id==="hk"?anaField():'')+'<div class="opts" role="group" aria-label="'+p.name+'">'+
+  return '<div class="pc">'+pHead(p)+'<span class="is">'+p.issue+'</span>'+fields(p.id)+'<div class="opts" role="group" aria-label="'+p.name+'">'+
    CW.ACTIONS.map(function(a){return '<button class="opt'+(r.a===a.id?" sel":"")+'" data-p="'+p.id+'" data-v="'+a.id+'"><span>'+a.t+'</span><small>'+eur(a.cost)+'</small></button>'}).join("")+
    '</div><span class="fitn '+(r.f>=.75?"g":r.f<=.3?"w":"")+'">Fixes '+pct(r.f)+' of the loss</span>'+(r.note?'<span class="hint" style="color:var(--bad);font-weight:700">'+r.note+'</span>':'')+'</div>'}).join("");
  $("facPick").innerHTML='<h4>Facilitator &middot; best fit</h4><ul>'+P.map(function(p){return '<li><b>'+p.name+' &rarr; '+CW.act(p.best).t+'.</b> '+p.cause+'</li>'}).join("")+
-  '<li>Trap: a PIP for Ana. She resigns, so the hotel pays for a replacement and fixes only 30% of the loss this year.</li></ul>';
+  '<li>Trap: a PIP for Ana. She resigns, so the hotel pays for a replacement and fixes only 30% of the loss this year.</li></ul>'+exBtns();
  renderLive()}
-function renderLive(){var t=CW.calc(S.m,S.picks);
- $("live").innerHTML='<div><div class="k">COST OF WAITING &middot; EXAMPLE</div><div class="v">'+eur(t.cow)+'</div></div><div class="s">GOP you keep this year by acting in '+MONTHS[S.m-1]+' instead of waiting for the December review. Each month you delay costs about <b>'+eur(t.perMonth)+'</b> more.</div><button class="btn btn-primary" data-go="2">See result &rarr;</button>'}
-function renderResult(){var t=CW.calc(S.m,S.picks),mx=Math.max(t.wait,t.total);
- $("cow").innerHTML='<div class="k">THE COST OF WAITING &middot; THIS YEAR &middot; EXAMPLE</div><div class="v">'+eur(t.cow)+'</div><div class="s">'+(t.cow>=0?'Waiting for the annual review loses this much more GOP than your plan: acting at the end of '+MONTHS[S.m-1]+'. Every month you delay adds about <b>'+eur(t.perMonth)+'</b>.':'This time, your plan costs more than waiting. Acting early only pays when the action fits the cause.')+'</div>';
+function exBtns(){return '<div class="row" style="margin-top:.4em"><button class="btn btn-ghost btn-sm" data-ex="1">Load example figures</button><button class="btn btn-ghost btn-sm" data-ex="0">Clear figures</button><span class="hint">Example: \u20ac1.50 &middot; 0.5% &middot; \u20ac500 &middot; 10 &middot; 15</span></div>'}
+function renderLive(){var t=T();
+ $("live").innerHTML=t.n?'<div><div class="k">COST OF WAITING'+(t.n<3?' &middot; '+t.n+' OF 3 PEOPLE':'')+'</div><div class="v">'+eur(t.cow)+'</div></div><div class="s">GOP you keep this year by acting in '+MONTHS[S.m-1]+' instead of waiting for the December review. Each month you delay costs about <b>'+eur(t.perMonth)+'</b> more.</div><button class="btn btn-primary" data-go="2">See result &rarr;</button>'
+  :'<div><div class="k">COST OF WAITING</div><div class="v pr">Your figures</div></div><div class="s">'+PROMPT+'.</div><button class="btn btn-primary" data-go="2">See result &rarr;</button>'}
+function renderResult(){var t=T(),mx=Math.max(t.wait,t.total,1);
+ if(!t.n){$("cow").innerHTML='<div class="k">THE COST OF WAITING &middot; THIS YEAR</div><div class="v pr">Your figures</div><div class="s">'+PROMPT+'. Go to <b>2 &middot; Decide</b> and enter each person\'s gap for your hotel.</div><div class="row" style="margin-top:.6em"><button class="btn btn-dark" data-go="1">Fill in the gaps &rarr;</button></div>';
+  $("cmp").innerHTML="";$("brk").innerHTML="";return}
+ $("cow").innerHTML='<div class="k">THE COST OF WAITING &middot; THIS YEAR'+(t.n<3?' &middot; '+t.n+' OF 3 PEOPLE ENTERED':'')+'</div><div class="v">'+eur(t.cow)+'</div><div class="s">'+(t.cow>=0?'Waiting for the annual review loses this much more GOP than your plan: acting at the end of '+MONTHS[S.m-1]+'. Every month you delay adds about <b>'+eur(t.perMonth)+'</b>.':'This time, your plan costs more than waiting. Acting early only pays when the action fits the cause.')+'</div>';
  function bar(cls,lab,sub,v){return '<div class="cb '+cls+'"><div class="lb"><b>'+lab+'</b><small>'+sub+'</small></div><div class="tr"><i style="width:'+Math.max(18,Math.round(v/mx*100))+'%">'+eur(v)+'</i></div></div>'}
  $("cmp").innerHTML=bar("wa","Wait for the annual review","12 months of full losses",t.wait)+bar("ac","Your plan","act in "+MONTHS[S.m-1]+", losses + action costs",t.total);
- $("brk").innerHTML='<thead><tr><th>Person &middot; EXAMPLE</th><th>Action</th><th>Wait for review</th><th>Your plan</th><th>Saved</th></tr></thead><tbody>'+
-  t.rows.map(function(r){return '<tr><td><b>'+r.p.name+'</b></td><td>'+CW.act(r.a).t+' <small>(fixes '+pct(r.f)+')</small></td><td>'+eur(r.wait)+'</td><td>'+eur(r.total)+'</td><td class="g">'+eur(r.saved)+'</td></tr>'}).join("")+
+ $("brk").innerHTML='<thead><tr><th>Person</th><th>Action</th><th>Wait for review</th><th>Your plan</th><th>Saved</th></tr></thead><tbody>'+
+  t.rows.map(function(r){if(!r.on)return '<tr class="ne"><td><b>'+r.p.name+'</b></td><td colspan="4"><i>not entered</i></td></tr>';
+   return '<tr><td><b>'+r.p.name+'</b></td><td>'+CW.act(r.a).t+' <small>(fixes '+pct(r.f)+')</small></td><td>'+eur(r.wait)+'</td><td>'+eur(r.total)+'</td><td class="g">'+eur(r.saved)+'</td></tr>'}).join("")+
   '</tbody><tfoot><tr><td>Total</td><td></td><td>'+eur(t.wait)+'</td><td>'+eur(t.total)+'</td><td class="g">'+eur(t.cow)+'</td></tr></tfoot>'}
-function renderFac(){var best={},m1;P.forEach(function(p){best[p.id]=p.best});m1=CW.calc(1,best);
- var allC=CW.calc(1,{fd:"checkin",hk:"checkin",res:"checkin"}),m6=CW.calc(6,best);
- $("facModel").innerHTML='<h4>Facilitator &middot; the math (EXAMPLE values, transparent)</h4>'+
+function used(){return P.map(function(p){if(!on(p.id))return p.name+": not entered";
+ return p.name+": "+F[p.id].map(function(f){var v=CW.num(V(p.id)[f.k]);return f.s+" "+(v===null?"\u2013":(f.u==="\u20ac"?"\u20ac"+(f.dec?v.toFixed(f.dec):v.toLocaleString("en-US")):v+(f.u||"")))}).join(", ")}).join("; ")}
+function why(id){var v=V(id),n=function(k){var x=CW.num(v[k]);return x===null?0:x};
+ if(!on(id))return "not entered";
+ if(id==="fd")return "\u20ac"+n("gap").toFixed(2)+" upsell gap \u00d7 1,095 room nights";
+ if(id==="hk")return n("adrGap")+"% lower ADR (\u20ac"+(C.adr*n("adrGap")/100).toFixed(2)+" \u00d7 1,095) + \u20ac"+n("ot").toLocaleString("en-US")+" overtime";
+ return n("lost")+" lost room nights \u00d7 \u20ac90 (\u20ac120 \u2212 \u20ac30) + "+n("ota")+" room nights moved to OTA \u00d7 \u20ac120 \u00d7 18%"}
+function renderFac(){var best={};P.forEach(function(p){best[p.id]=p.best});
+ var m1=CW.calc(1,best,S.vals),allC=CW.calc(1,{},S.vals),m6=CW.calc(6,best,S.vals);
+ $("facModel").innerHTML='<h4>Facilitator &middot; the math (EXAMPLE hotel, figures as entered)</h4>'+exBtns()+
  '<div class="fxw"><table class="fx"><thead><tr><th>Person</th><th>GOP lost per month if nobody acts</th><th>Check-ins</th><th>Coaching</th><th>PIP</th></tr></thead><tbody>'+
- P.map(function(p){return '<tr><td><b>'+p.name+'</b><br><small>'+p.cause+'</small></td><td><b>'+eur(p.leak)+'</b><br><small>'+p.why+'</small></td>'+["checkin","coach","pip"].map(function(a){var f=CW.FIX[p.id][a];return '<td'+(p.best===a?' style="font-weight:800;color:var(--ok)"':'')+'>fixes '+pct(f.f)+(f.extra?'<br><small>she resigns, +'+eur(f.extra)+'</small>':'')+'</td>'}).join("")+'</tr>'}).join("")+
+ P.map(function(p){return '<tr><td><b>'+p.name+'</b><br><small>'+p.cause+'</small></td><td><b>'+(on(p.id)?eur(CW.leak(p.id,V(p.id))):'not entered')+'</b><br><small>'+(on(p.id)?why(p.id):'')+'</small></td>'+["checkin","coach","pip"].map(function(a){var f=CW.FIX[p.id][a];return '<td'+(p.best===a?' style="font-weight:800;color:var(--ok)"':'')+'>fixes '+pct(f.f)+(f.extra?'<br><small>she resigns, +'+eur(f.extra)+'</small>':'')+'</td>'}).join("")+'</tr>'}).join("")+
  '</tbody></table></div><ul>'+
- '<li>Hotel: '+C.rooms+' rooms &times; '+C.days+' days &times; '+pct(C.occ)+' = '+Math.round(C.rnYear).toLocaleString("en-US")+' occupied room nights a year, '+Math.round(C.rnMonth).toLocaleString("en-US")+' a month. ADR \u20ac'+C.adr+', variable cost \u20ac'+C.varCost+' per occupied room, OTA commission '+pct(C.otaComm)+'.</li>'+
- '<li>Action costs (one-off): check-ins '+eur(600)+', coaching '+eur(2000)+', PIP '+eur(1000)+'.</li>'+
+ '<li>EXAMPLE hotel: '+C.rooms+' rooms &times; '+C.days+' days &times; '+pct(C.occ)+' = '+Math.round(C.rnYear).toLocaleString("en-US")+' occupied room nights a year, '+Math.round(C.rnMonth).toLocaleString("en-US")+' a month. ADR \u20ac'+C.adr+', variable cost \u20ac'+C.varCost+' per occupied room (profit \u20ac'+C.margin+' per room night), OTA commission '+pct(C.otaComm)+'.</li>'+
+ '<li>Action costs (one-off): check-ins '+eur(600)+', coaching '+eur(2000)+', PIP '+eur(1000)+'. A person with no figures entered is left out.</li>'+
  '<li>Formula per person: loss &times; months until you act + loss &times; (1 &minus; share fixed) &times; months left + action cost. Waiting for the annual review = loss &times; 12.</li>'+
- '<li>Answers at Marko\'s upsell gap \u20ac'+P[0].gap.toFixed(2)+', Ana\'s ADR gap '+(+P[1].adrGap.toFixed(2))+'% and overtime '+eur(P[1].ot)+'/month'+(P[0].gap===1.5&&P[1].adrGap===0.5&&P[1].ot===500?' (the EXAMPLE defaults)':'')+': waiting = '+eur(m1.wait)+'. Best fit in January = '+eur(m1.total)+', cost of waiting <b>'+eur(m1.cow)+'</b>. Check-ins for everyone in January = cost of waiting '+eur(allC.cow)+'. Best fit, but only in June = '+eur(m6.cow)+'.</li>'+
+ (m1.n?'<li>Answers with the figures entered ('+used()+'): waiting = '+eur(m1.wait)+'. Best fit in January = '+eur(m1.total)+', cost of waiting <b>'+eur(m1.cow)+'</b>. Check-ins for everyone in January = cost of waiting '+eur(allC.cow)+'. Best fit, but only in June = '+eur(m6.cow)+'.</li>'
+  :'<li>Answers: no figures entered yet. Use <b>Load example figures</b> to demo.</li>')+
  '<li>Seasonality, morale and next year are left out on purpose to keep it simple: in reality, tolerated low performance also drags down the rest of the team.</li></ul>'}
 function render(){document.body.classList.toggle("facmode",!!S.fac);$("bFac").setAttribute("aria-pressed",S.fac?"true":"false");
  renderStart();renderPick();renderResult();renderFac()}
+function refreshNums(){renderStart();renderLive();renderResult();renderFac()}
 document.addEventListener("click",function(e){var t=e.target.closest("button");if(!t)return;var d=t.dataset;
  if(d.go!=null){go(+d.go);return}
- if(d.p){S.picks[d.p]=d.v;save();renderPick();renderResult();return}});
-document.addEventListener("input",function(e){if(e.target.id!=="gap")return;var v=e.target.value;if(v===""||!isFinite(+v))return;
- S.gap=CW.setGap(v);save();$("gapM").textContent="= "+eur(P[0].leak)+" GOP lost a month (\u00d7 1,095 room nights)";renderStart();renderLive();renderResult();renderFac()});
-document.addEventListener("input",function(e){var id=e.target.id;if(id!=="anaAdr"&&id!=="anaOt")return;var v=e.target.value;if(v===""||!isFinite(+v))return;
- if(id==="anaAdr")S.adrGap=+v;else S.ot=+v;var a=CW.setAna(S.adrGap,S.ot);S.adrGap=a.adrGap;S.ot=a.ot;save();$("anaM").textContent=anaLine();renderStart();renderLive();renderResult();renderFac()});
-document.addEventListener("change",function(e){var id=e.target.id;if(id==="gap"){e.target.value=CW.PEOPLE[0].gap.toFixed(2)}
- else if(id==="anaAdr"){e.target.value=+CW.PEOPLE[1].adrGap.toFixed(2)}else if(id==="anaOt"){e.target.value=Math.round(CW.PEOPLE[1].ot)}});
-$("month").addEventListener("input",function(e){S.m=+e.target.value;save();renderPick();renderResult()});
+ if(d.ex!=null){S.vals=d.ex==="1"?CW.example():emptyVals();save();render();return}
+ if(d.p){S.picks[d.p]=d.v;save();renderPick();renderResult();renderFac();return}});
+document.addEventListener("input",function(e){var el=e.target,id=el.dataset.fid,k=el.dataset.fk;if(!id)return;
+ var f=F[id].filter(function(x){return x.k===k})[0],raw=el.value;
+ if(raw===""){delete S.vals[id][k]}else{var v=CW.clampF(f,raw);if(v===null)return;S.vals[id][k]=v}
+ save();$("lm-"+id).innerHTML=lossLine(id);refreshNums()});
+document.addEventListener("change",function(e){var el=e.target,id=el.dataset.fid;if(!id)return;var v=CW.num(S.vals[id][el.dataset.fk]);el.value=v===null?"":v});
+$("month").addEventListener("input",function(e){S.m=+e.target.value;save();renderPick();renderResult();renderFac()});
 $("bFac").onclick=function(){S.fac=!S.fac;save();render()};
 $("bHelp").onclick=function(){$("ovHelp").hidden=false};
 $("bHelpClose").onclick=function(){$("ovHelp").hidden=true};
@@ -365,7 +395,7 @@ document.addEventListener("keydown",function(e){var tag=(e.target.tagName||"").t
  else if(e.key==="n"||e.key==="N")$("bFac").click();
  else if(e.key==="h"||e.key==="H"||e.key==="?")$("ovHelp").hidden=!$("ovHelp").hidden});
 go(S.scr);
-window.CW=CW;
+window.__S=function(){return S};
 })();
 </script>
 </body>
