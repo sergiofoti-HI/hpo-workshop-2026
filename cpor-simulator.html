@@ -80,6 +80,13 @@ input[type=number]::placeholder{color:#aaa;font-weight:600}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .optbox{border:2px dashed #ccc;border-radius:14px;padding:.7em 1em;background:#fafafa}
 .optbox h3{font-size:.95em;margin-bottom:.35em;color:var(--grey)}
+.buildtbl td:first-child{width:auto}.buildtbl td:last-child{width:7.5em;text-align:right}
+.buildtbl label{display:flex;align-items:flex-start;gap:.45em;cursor:pointer;font-weight:500}
+.buildtbl input[type=checkbox]{margin-top:.25em;accent-color:var(--crimson);width:1.05em;height:1.05em;flex:0 0 auto}
+.buildnote{font-size:.72em;color:var(--grey);font-weight:500;margin:.15em 0 .35em 1.55em;line-height:1.35}
+.buildtot{font-weight:800;background:var(--blush2)}
+.syncok{font-size:.78em;color:var(--ok);font-weight:700}
+.syncman{font-size:.78em;color:var(--crimson);font-weight:700}
 @media (max-width:800px){.grid2{grid-template-columns:1fr}body{font-size:14px}input[type=number]{width:4.6em}input[data-u]{width:5.6em}}
 </style>
 </head>
@@ -171,26 +178,38 @@ input[type=number]::placeholder{color:#aaa;font-weight:600}
 <section class="screen" id="s3">
  <div class="kicker">Step 4 &middot; Pricing groups in low season</div>
  <h2>Low-season group floor: <span>marginal cost vs full cost</span></h2>
- <p class="lead">In low season fixed costs are spread over few room nights, so the fully loaded floor looks too high. Those fixed costs are paid whether the group comes or not. The <b>minimum low-season floor</b> therefore starts from the <b>direct (variable) cost</b> per occupied room and grosses it up for the contribution you still want to keep.</p>
+ <p class="lead">In low season fixed costs are spread over few room nights, so the fully loaded floor looks too high. Those fixed costs are paid whether the group comes or not. Build the <b>direct (variable) cost</b> from the Step 1 lines that truly move with an occupied room, then gross it up for the contribution you still want to keep.</p>
  <div class="formula">Floor rate = Direct cost per occupied room &divide; (1 &minus; desired contribution %)</div>
  <div class="grid2">
-  <div class="card"><h3>Minimum low-season floor</h3>
-   <p class="hint" style="margin-bottom:.5em">Leave fields empty and type your own hotel's numbers. Empty counts as 0.</p>
-   <table>
-    <tr><td>Direct cost per occupied room (&euro;)<br><button type="button" class="linkish" id="bUseVari">Use variable cost from Step 1</button></td><td><input type="number" id="gDirect" step="0.5" min="0" placeholder="e.g. 35.68"></td></tr>
-    <tr><td>Desired contribution %</td><td><input type="number" id="gPct" step="1" min="0" max="99" placeholder="e.g. 30"></td></tr>
-   </table>
-   <div class="btnrow" style="margin-top:.7em">
-    <button type="button" class="btn ghost" id="bGEx">Load example figures</button>
-    <button type="button" class="btn ghost" id="bGClear">Clear figures</button>
-    <span class="ex">EXAMPLE</span>
+  <div style="display:flex;flex-direction:column;gap:.7em">
+   <div class="card"><h3>Direct cost builder</h3>
+    <p class="hint" style="margin-bottom:.5em">Tick only the Step 1 costs that vary per occupied room in low season. Amounts stay live from Step 1.</p>
+    <table class="buildtbl" id="gBuild"></table>
+    <div class="note" style="margin-top:.55em">Salaried housekeeping and front office are paid whether the group comes or not, so they start unticked. Add hourly or agency labor in the extra field if that is how you staff the group.</div>
    </div>
-   <div class="big" style="margin-top:.8em">
-    <div class="kpi dark"><div class="l">Minimum low-season floor rate</div><div class="v" id="kGFloor"></div></div>
-    <div class="kpi"><div class="l">Direct cost (absolute minimum)</div><div class="v" id="kGDirect"></div></div>
+   <div class="card"><h3>Minimum low-season floor</h3>
+    <table>
+     <tr><td>Direct cost per occupied room (&euro;)<br>
+       <button type="button" class="linkish" id="bUseBuild">Use builder total</button>
+       &nbsp;·&nbsp;
+       <button type="button" class="linkish" id="bUseVari">Use variable cost from Step 3</button>
+       <div id="gSyncHint" style="margin-top:.25em"></div>
+     </td><td><input type="number" id="gDirect" step="0.5" min="0" placeholder="e.g. from builder"></td></tr>
+     <tr><td>Desired contribution %</td><td><input type="number" id="gPct" step="1" min="0" max="99" placeholder="e.g. 30"></td></tr>
+    </table>
+    <div class="btnrow" style="margin-top:.7em">
+     <button type="button" class="btn ghost" id="bGEx">Load example figures</button>
+     <button type="button" class="btn ghost" id="bGClear">Clear figures</button>
+     <span class="ex">EXAMPLE</span>
+    </div>
+    <div class="big" style="margin-top:.8em">
+     <div class="kpi dark"><div class="l">Minimum low-season floor rate</div><div class="v" id="kGFloor"></div></div>
+     <div class="kpi"><div class="l">Direct cost (absolute minimum)</div><div class="v" id="kGDirect"></div></div>
+     <div class="kpi"><div class="l">Builder total (ticked)</div><div class="v" id="kGBuild"></div></div>
+    </div>
+    <div id="gHeadFlags" style="margin-top:.5em"></div>
+    <div class="note" style="margin-top:.7em">Below this rate the room does not cover its direct cost plus your chosen contribution. Fixed costs are ignored on purpose in low season.</div>
    </div>
-   <div id="gHeadFlags" style="margin-top:.5em"></div>
-   <div class="note" style="margin-top:.7em">Below this rate the room does not cover its direct cost plus your chosen contribution. Fixed costs are ignored on purpose in low season.</div>
   </div>
   <div style="display:flex;flex-direction:column;gap:.7em">
    <div class="card">
@@ -218,11 +237,12 @@ input[type=number]::placeholder{color:#aaa;font-weight:600}
    <div class="fac"><h4>Facilitator</h4>
     <ul>
      <li>Headline math only: Floor = direct cost &divide; (1 &minus; desired contribution %).</li>
+     <li><b>Fixed vs variable labor:</b> salaried housekeeping and front office are usually fixed in low season (paid anyway). Tick them only if the hotel pays per room, overtime or agency staff for the group. Use the "Per-room labor (hourly / agency)" field for that variable labor.</li>
+     <li>OTA commissions stay off for most groups booked direct; tick only if a group intermediary takes a commission.</li>
+     <li>Breakfast food cost (&euro;3.99 &times; guests per room) is the variable piece; the fully loaded breakfast line also carries F&amp;B labor and other, so leave it unticked unless that labor truly moves with the group.</li>
      <li>Don't let a group rate train the market below your competitive set.</li>
-     <li>Check displacement against the forecast for those dates; in true low season it is often zero.</li>
-     <li>Count F&amp;B and extras at their <b>profit</b>, not their revenue (optional check).</li>
-     <li>Example figures are EXAMPLE only. Participants should enter their own hotel's numbers.</li>
-     <li>Use <b>Load example figures</b> to demo, then <b>Clear figures</b> before groups start.</li>
+     <li>Check displacement against the forecast; in true low season it is often zero. Count F&amp;B at <b>profit</b>, not revenue (optional check).</li>
+     <li>Example figures are EXAMPLE only. Use <b>Load example figures</b> to demo, then <b>Clear figures</b> before groups start.</li>
     </ul>
    </div>
   </div>
@@ -252,16 +272,16 @@ input[type=number]::placeholder{color:#aaa;font-weight:600}
 <script>
 (function(){
 "use strict";
-var KEY="hpo2026-cpor-v1",ORN=4030;
+var KEY="hpo2026-cpor-v2",ORN=4030;
 var MONTHS=[["January",31],["February",28],["March",31],["April",30],["May",31],["June",30],["July",31],["August",31],["September",30],["October",31],["November",30],["December",31]];
 var REF=[["Jan–Mar",152.85,17.9,0],["Apr–May",85.39,47.4,3],["Jun + Sep",57.26,87.3,5],["Jul–Aug",59.47,92.8,6]];
 function fresh(){return{scr:0,fac:false,
  rooms:[["Housekeeping labor",11.64],["Front office labor",11.41],["OTA commissions",15.87],["Amenities",3.33],["Laundry",0.30],["Cleaning supplies",0.24],["Contract services",1.13],["Other",0.24]],
  bf:{pp:12.03,gpr:1.92934},
  ue:[["Energy, water and waste",23986,"rev",[87.7,87.7,87.7]],["Maintenance",35290,"rev",[87.7,87.7,87.7]],["Administration and general",32533,"rev",[87.7,87.7,87.7]],["IT and sales & marketing",8317,"rev",[87.7,87.7,87.7]]],
- orn:ORN,fee:7,mar:30,mku:30,base:"ex",fix:16800,vari:35.68,nrooms:26,mon:0,occ:17.9,g:{direct:null,pct:null,nights:null,fbRev:null,fbMar:null,ppr:null,disp:null,dispC:null}};}
+ orn:ORN,fee:7,mar:30,mku:30,base:"ex",fix:16800,vari:35.68,nrooms:26,mon:0,occ:17.9,g:{direct:null,pct:null,nights:null,fbRev:null,fbMar:null,ppr:null,disp:null,dispC:null,override:false,ticks:null,bfFood:true,bfFull:false,laborExtra:null}};}
 var S=fresh();
-try{var L=JSON.parse(localStorage.getItem(KEY));if(L&&L.rooms&&L.ue){var hadG=!!(L.g);S=Object.assign(fresh(),L);if(!S.g)S.g=fresh().g;if(!hadG&&S.scr===3)S.scr=4}}catch(e){}
+try{var L=JSON.parse(localStorage.getItem(KEY));if(L&&L.rooms&&L.ue){S=Object.assign(fresh(),L);S.g=Object.assign(fresh().g,S.g||{});if(!S.g.ticks)S.g.ticks=null}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function $(i){return document.getElementById(i)}
 function eu(v){return "€"+(isFinite(v)?v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):"–")}
@@ -341,12 +361,62 @@ function seas(){
  $("chart").innerHTML=s;
 }
 // low-season group floor (headline: direct cost / (1 - contribution %))
-var GMAP={gDirect:"direct",gPct:"pct",gNights:"nights",gFbRev:"fbRev",gFbMar:"fbMar",gPpr:"ppr",gDisp:"disp",gDispC:"dispC"};
+var GMAP={gDirect:"direct",gPct:"pct",gNights:"nights",gFbRev:"fbRev",gFbMar:"fbMar",gPpr:"ppr",gDisp:"disp",gDispC:"dispC",gLabor:"laborExtra"};
 var GEX={pct:30,nights:40,fbRev:30,fbMar:35,ppr:1.5,disp:0,dispC:50};
+var BF_FOOD=3.99;
 function gRaw(k){var v=S.g[k];return (v===null||v===""||typeof v==="undefined")?null:num(v)}
 function gVal(k){var v=gRaw(k);return v===null?0:v}
 function floorFull(){var c=calc(),b=S.base==="full"?c.full:c.ex,f=num(S.fee)/100,m=num(S.mar)/100,den=1-f-m;return den>0?b/den:NaN}
+function defaultTicks(){
+ var o={};
+ S.rooms.forEach(function(x,i){
+  var n=String(x[0]).toLowerCase(), on=false;
+  if(/amenities|laundry|cleaning supplies/.test(n))on=true;
+  // labor, OTA commissions, contract services, other → false
+  o["r"+i]=on;
+ });
+ return o;
+}
+function ensureTicks(){
+ if(!S.g.ticks)S.g.ticks=defaultTicks();
+ // keep in sync if room count changes
+ S.rooms.forEach(function(x,i){var k="r"+i;if(typeof S.g.ticks[k]==="undefined"){var n=String(x[0]).toLowerCase();S.g.ticks[k]=/amenities|laundry|cleaning supplies/.test(n)}});
+ if(typeof S.g.bfFood!=="boolean")S.g.bfFood=true;
+ if(typeof S.g.bfFull!=="boolean")S.g.bfFull=false;
+}
+function roomNote(name){
+ var n=String(name).toLowerCase();
+ if(/housekeeping|front office/.test(n))return "Salaried staff are paid whether the group comes or not, so they are fixed in low season. Tick only if you pay per room, extra hours or agency staff.";
+ if(/commission/.test(n))return "Groups are usually booked direct; tick if a group intermediary/commission applies.";
+ if(/contract/.test(n))return "Tick only if this is per-room outsourced cleaning (or similar) that rises with occupied rooms.";
+ if(/^other$/.test(n)||/\bother\b/.test(n))return "Leave unticked unless the line truly moves with each occupied room.";
+ return "";
+}
+function builderLines(){
+ ensureTicks();
+ var lines=[], tot=0;
+ S.rooms.forEach(function(x,i){
+  var amt=num(x[1]), on=!!S.g.ticks["r"+i];
+  lines.push({key:"r"+i,label:x[0],amt:amt,on:on,note:roomNote(x[0]),kind:"room"});
+  if(on)tot+=amt;
+ });
+ var food=BF_FOOD*num(S.bf.gpr), full=num(S.bf.pp)*num(S.bf.gpr);
+ lines.push({key:"bfFood",label:"Breakfast food cost per room (€"+BF_FOOD.toFixed(2)+" × "+(Math.round(num(S.bf.gpr)*100)/100)+" guests)",amt:food,on:!!S.g.bfFood,note:"Variable food cost only. The Step 1 fully loaded breakfast (€"+num(S.bf.pp).toFixed(2)+" / guest) also includes F&B labor and other.",kind:"bfFood"});
+ if(S.g.bfFood)tot+=food;
+ lines.push({key:"bfFull",label:"Breakfast fully loaded per room (optional)",amt:full,on:!!S.g.bfFull,note:"Includes food + F&B labor and other. Leave unticked unless that labor moves with the group. Do not tick together with food cost only.",kind:"bfFull"});
+ if(S.g.bfFull)tot+=full;
+ var lab=gRaw("laborExtra"), labAmt=lab===null?0:lab;
+ lines.push({key:"laborExtra",label:"Per-room labor (hourly / agency)",amt:labAmt,on:lab!==null&&labAmt!==0,note:"Use this for variable labor instead of ticking salaried housekeeping / front office.",kind:"labor",input:true});
+ if(lab!==null)tot+=labAmt;
+ return{lines:lines,total:tot,food:food,full:full};
+}
+function applyBuilderToDirect(force){
+ var b=builderLines();
+ if(force||!S.g.override){S.g.direct=Math.round(b.total*100)/100;if($("gDirect"))$("gDirect").value=S.g.direct}
+ return b;
+}
 function groupCalc(){
+ var b=builderLines();
  var direct=gVal("direct"),pct=gVal("pct"),nights=gVal("nights"),fbRev=gVal("fbRev"),fbMar=gVal("fbMar"),ppr=gVal("ppr"),disp=gVal("disp"),dispC=gVal("dispC");
  var den=1-pct/100, floor=NaN, floorErr=null;
  if(gRaw("pct")!==null&&pct>=100)floorErr="Contribution % must be below 100.";
@@ -355,18 +425,48 @@ function groupCalc(){
  var full=floorFull();
  var otherPer=fbRev*ppr*(fbMar/100);
  var otherTot=otherPer*nights,dispTot=disp*dispC;
- // Optional GOP: rooms contribution at the low-season floor + other-spend profit - displacement
  var gop=isFinite(floor)?(floor-direct)*nights+otherTot-dispTot:NaN;
  var headOn=gRaw("direct")!==null||gRaw("pct")!==null;
  var optOn=gRaw("nights")!==null||gRaw("fbRev")!==null||gRaw("fbMar")!==null||gRaw("ppr")!==null||gRaw("disp")!==null||gRaw("dispC")!==null;
- return{direct:direct,pct:pct,floor:floor,floorErr:floorErr,full:full,diff:(isFinite(full)&&isFinite(floor))?full-floor:NaN,otherPer:otherPer,gop:gop,nights:nights,headOn:headOn,optOn:optOn};
+ return{direct:direct,pct:pct,floor:floor,floorErr:floorErr,full:full,diff:(isFinite(full)&&isFinite(floor))?full-floor:NaN,otherPer:otherPer,gop:gop,nights:nights,headOn:headOn,optOn:optOn,build:b};
+}
+function renderBuilder(){
+ var b=builderLines(),h='<tr><th>Varies per room in low season?</th><th>€ / room</th></tr>';
+ b.lines.forEach(function(L){
+  if(L.kind==="labor"){
+   h+='<tr><td>'+L.label;
+   if(L.note)h+='<div class="buildnote">'+L.note+'</div>';
+   h+='</td><td><input type="number" id="gLabor" step="0.5" min="0" placeholder="e.g. 5" value="'+(gRaw("laborExtra")===null?"":gRaw("laborExtra"))+'"></td></tr>';
+  }else{
+   h+='<tr><td><label><input type="checkbox" data-bk="'+L.key+'" '+(L.on?'checked':'')+'> '+L.label+'</label>';
+   if(L.note)h+='<div class="buildnote">'+L.note+'</div>';
+   h+='</td><td>'+eu(L.amt)+'</td></tr>';
+  }
+ });
+ h+='<tr class="buildtot"><td>Builder total (ticked)</td><td>'+eu(b.total)+'</td></tr>';
+ $("gBuild").innerHTML=h;
+ if(S.g.bfFood&&S.g.bfFull){
+  /* warning injected in head flags too */
+ }
 }
 function renderGroup(){
+ // keep direct synced from builder unless overridden
+ if(!S.g.override)applyBuilderToDirect(false);
  var r=groupCalc();
+ var ae=document.activeElement,aid=ae&&ae.id,ass=(ae&&typeof ae.selectionStart==="number")?ae.selectionStart:null,ase=(ae&&typeof ae.selectionEnd==="number")?ae.selectionEnd:null;
+ renderBuilder();
+ if(aid&&$(aid)){try{$(aid).focus();if(ass!==null)$(aid).setSelectionRange(ass,ase)}catch(e){}}
+ $("kGBuild").textContent=eu(r.build.total);
  $("kGDirect").textContent=gRaw("direct")===null?"–":eu(r.direct);
+ $("gSyncHint").innerHTML=S.g.override?'<span class="syncman">Direct cost was typed by hand — builder no longer overwrites it. Click “Use builder total” to resume.</span>':'<span class="syncok">Direct cost follows the builder total (live).</span>';
  if(r.floorErr){$("kGFloor").textContent="–";$("gHeadFlags").innerHTML='<div class="warn">'+r.floorErr+'</div>';}
- else if(!r.headOn){$("kGFloor").textContent="–";$("gHeadFlags").innerHTML='<div class="hint">Enter direct cost and desired contribution % (or Load example figures).</div>';}
- else{$("kGFloor").textContent=eu(r.floor);$("gHeadFlags").innerHTML=(gRaw("direct")===null?'<span class="hint">Direct cost not entered (using 0). </span>':'')+(gRaw("pct")===null?'<span class="hint">Contribution % not entered (using 0). </span>':'');}
+ else if(!r.headOn){$("kGFloor").textContent="–";$("gHeadFlags").innerHTML='<div class="hint">Tick the builder lines and set a contribution % (or Load example figures).</div>';}
+ else{
+  $("kGFloor").textContent=eu(r.floor);
+  var hf=(gRaw("pct")===null?'<span class="hint">Contribution % not entered (using 0). </span>':'');
+  if(S.g.bfFood&&S.g.bfFull)hf+='<div class="warn">Breakfast food and fully loaded breakfast are both ticked — food is counted twice.</div>';
+  $("gHeadFlags").innerHTML=hf;
+ }
  $("kGFull").textContent=isFinite(r.full)?eu(r.full):"–";
  $("kGDiff").textContent=(r.headOn&&isFinite(r.diff))?eu(r.diff):"–";
  $("kGGop").textContent=(r.headOn&&(r.optOn||r.nights>0)&&isFinite(r.gop))?eu(r.gop):"–";
@@ -375,7 +475,6 @@ function renderGroup(){
  if(r.headOn&&isFinite(r.gop)&&(r.optOn||gRaw("nights")!==null))of+='<div class="'+(r.gop>0?'okbadge':'warn')+'">Positive GOP flow-through? '+(r.gop>0?'Yes':'No')+' ('+eu(r.gop)+')</div>';
  if(!r.optOn)of+='<div class="hint">Optional checks empty — they do not change the floor above.</div>';
  $("gOptFlags").innerHTML=of;
- // bar chart: direct / low-season floor / full-cost
  var fShow=isFinite(r.floor)?r.floor:0, fullShow=isFinite(r.full)?r.full:0;
  var vals=[["Direct cost",r.direct,"#1F1F1F"],["Low-season floor",fShow,"#CD2353"],["Full-cost floor",fullShow,"#E0457A"]];
  var max=Math.max(10,vals[0][1],vals[1][1],vals[2][1])*1.15;
@@ -390,14 +489,44 @@ function renderGroup(){
  $("gChart").innerHTML=s;
 }
 function syncGInputs(){
- Object.keys(GMAP).forEach(function(id){var k=GMAP[id],v=S.g[k];$(id).value=(v===null||typeof v==="undefined")?"":v});
+ ["gDirect","gPct","gNights","gFbRev","gFbMar","gPpr","gDisp","gDispC"].forEach(function(id){var k=GMAP[id],v=S.g[k];$(id).value=(v===null||typeof v==="undefined")?"":v});
+ if($("gLabor"))$("gLabor").value=gRaw("laborExtra")===null?"":gRaw("laborExtra");
 }
-Object.keys(GMAP).forEach(function(id){
- $(id).addEventListener("input",function(){var raw=this.value.trim();S.g[GMAP[id]]=raw===""?null:num(raw);save();renderGroup()});
+function onGField(id,val){
+ var raw=(""+val).trim();
+ S.g[GMAP[id]]=raw===""?null:num(raw);
+ if(id==="gDirect")S.g.override=true;
+ if(id==="gLabor"){/* labor amount drives inclusion */}
+ save();renderGroup();
+}
+["gDirect","gPct","gNights","gFbRev","gFbMar","gPpr","gDisp","gDispC"].forEach(function(id){
+ $(id).addEventListener("input",function(){onGField(id,this.value)});
 });
-$("bUseVari").onclick=function(){S.g.direct=num(S.vari);$("gDirect").value=S.g.direct;save();renderGroup()};
-$("bGEx").onclick=function(){S.g.direct=num(S.vari);S.g.pct=GEX.pct;Object.keys(GEX).forEach(function(k){if(k!=="pct")S.g[k]=GEX[k]});syncGInputs();save();renderGroup()};
-$("bGClear").onclick=function(){Object.keys(S.g).forEach(function(k){S.g[k]=null});syncGInputs();save();renderGroup()};
+$("gBuild").addEventListener("change",function(e){
+ var t=e.target;if(!t)return;
+ if(t.id==="gLabor"){onGField("gLabor",t.value);return}
+ if(t.type==="checkbox"&&t.dataset.bk){
+  var k=t.dataset.bk;
+  if(k==="bfFood")S.g.bfFood=t.checked;
+  else if(k==="bfFull")S.g.bfFull=t.checked;
+  else if(k.indexOf("r")===0){ensureTicks();S.g.ticks[k]=t.checked}
+  if(!S.g.override)applyBuilderToDirect(true);
+  save();renderGroup();
+ }
+});
+$("gBuild").addEventListener("input",function(e){if(e.target&&e.target.id==="gLabor")onGField("gLabor",e.target.value)});
+$("bUseBuild").onclick=function(){S.g.override=false;applyBuilderToDirect(true);save();syncGInputs();renderGroup()};
+$("bUseVari").onclick=function(){S.g.direct=num(S.vari);S.g.override=true;$("gDirect").value=S.g.direct;save();renderGroup()};
+$("bGEx").onclick=function(){
+ S.g.ticks=defaultTicks();S.g.bfFood=true;S.g.bfFull=false;S.g.laborExtra=null;S.g.override=false;
+ S.g.pct=GEX.pct;Object.keys(GEX).forEach(function(k){if(k!=="pct")S.g[k]=GEX[k]});
+ applyBuilderToDirect(true);syncGInputs();save();renderGroup();
+};
+$("bGClear").onclick=function(){
+ ["direct","pct","nights","fbRev","fbMar","ppr","disp","dispC","laborExtra"].forEach(function(k){S.g[k]=null});
+ S.g.override=false;S.g.ticks=defaultTicks();S.g.bfFood=true;S.g.bfFull=false;
+ syncGInputs();save();renderGroup();
+};
 // screens
 var NAMES=["1 CPOR build-up","2 Floor rate","3 Seasonality","4 Low-season group","5 Discuss"];
 $("nav").innerHTML=NAMES.map(function(n,i){return '<button class="ndot" data-s="'+i+'">'+n+'</button>'}).join("");
